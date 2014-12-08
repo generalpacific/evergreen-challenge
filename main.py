@@ -140,13 +140,13 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
   if boilerplateOnly == 0:
     X = tfidf(trainDataBoilerplate)
   elif boilerplateOnly == 1:
-    X = list(trainData) 
+    X = trainData
   elif boilerplateOnly == 2:
     X = documentFrequencyVector(trainDataBoilerplate)
     topicsVector = getLdaTopicsVector(X)
     t = np.array(topicsVector)[np.newaxis].T
     trainData = np.append(trainData, t, 1)
-    X = list(trainData)
+    X = trainData
   else:
     print "boilerplateOnly value should either be 0, 1 or 2"
     sys.exit(0)
