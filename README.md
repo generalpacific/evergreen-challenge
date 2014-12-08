@@ -18,3 +18,4 @@ https://www.kaggle.com/c/stumbleupon
     * `1`: Use non-boiler plate text attributes
     * `2`: Use non-boiler plate text attributes AND extract one top LDA topic per boiler plate attribute
     * `3`: Use LDA topic vectos for boiler  plate code
+   * Debug (optional): to print debug statments 
