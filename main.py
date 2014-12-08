@@ -15,7 +15,8 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import log_loss
 import matplotlib.pyplot as plt
-
+import lda
+from sklearn.feature_extraction.text import CountVectorizer
 
 SEED = 15
 
@@ -47,6 +48,23 @@ def tfidf(trainData):
   tfv.fit(trainData)
   X = tfv.transform(trainData)
   return X
+
+def documentFrequencyVector(trainData):
+  tfv = CountVectorizer(min_df=3,  max_features=None, strip_accents='unicode',  
+        analyzer='word',token_pattern=r'\w{1,}',ngram_range=(1, 2))
+  tfv.fit(trainData)
+  X = tfv.transform(trainData)
+  return X
+
+def getLdaTopicsVector(X):
+  model = lda.LDA(n_topics=20, n_iter=1, random_state=1)
+  model.fit(X)  # model.fit_transform(X) is also available
+  topic_word = model.topic_word_  # model.components_ also works
+  doc_topic = model.doc_topic_
+  topicVector = []
+  for i in range(X.shape[0]):
+    topicVector.append(doc_topic[i].argmax())
+  return topicVector
 
 def selectModel(classifier):
   if classifier == 0:
@@ -120,10 +138,19 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
   target = np.array(p.read_table('train.tsv'))[:,-1]
   isImbalanced(y)
 
-  if boilerplateOnly == 1:
+  if boilerplateOnly == 0:
     X = tfidf(trainDataBoilerplate)
-  else:
+  elif boilerplateOnly == 1:
     X = list(trainData) 
+  elif boilerplateOnly == 2:
+    X = documentFrequencyVector(trainDataBoilerplate)
+    topicsVector = getLdaTopicsVector(X)
+    t = np.array(topicsVector)[np.newaxis].T
+    trainData = np.append(trainData, t, 1)
+    X = list(trainData)
+  else:
+    print "boilerplateOnly value should either be 0, 1 or 2"
+    sys.exit(0)
 
   model = selectModel(classifier)
 
@@ -162,7 +189,7 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
 
 def main():
   if len(sys.argv) < 6:
-    print 'Usage: python main.py <rawData> <trainFile> <testFile> <classifier - 0-lr, 1-nb, 2-rf> <boilerplateOnly>'
+    print 'Usage: python main.py <rawData> <trainFile> <testFile> <classifier - 0-lr, 1-nb, 2-rf> <feature selection 0-boilerplateOnly, 1-useOtherFeatures, 2-userOtherFeatures with LDA'
     sys.exit(2)
   egon(str(sys.argv[1]), str(sys.argv[2]), str(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])) 
 
