@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 import lda
 from sklearn.feature_extraction.text import CountVectorizer
 
-SEED = 15
 
 def convert(val):
   if val == '?':
@@ -155,28 +154,37 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
   model = selectModel(classifier)
 
   # Feature importances
- 
+
+  print "===== Starting random split ====="
   aucAvg = 0.0
-  numcross = 1 
+  numcross = 10
   for i in xrange(numcross): 
-    X_train, X_cv, y_train, y_cv = cross_validation.train_test_split(X, y, test_size = 0.2, random_state = 1*SEED)
-    #X_train = model.transform(X_train, threshold="mean") #TODO
+    X_train, X_cv, y_train, y_cv = cross_validation.train_test_split(X, y, test_size = 0.2)
     model.fit(X_train, y_train)
     preds = model.predict_proba(X_cv)[:,1]
-    #preds = model.predict(X_cv)[:,1]
     auc = metrics.roc_auc_score(y_cv, preds)
+    print "NumCross:",i," Auc:",auc
     aucAvg += auc
   aucAvg = aucAvg/numcross
   print "AUC : %f" % aucAvg
  
   #plotFeatureImportances(model)
-  '''
-  cv = cross_validation.KFold(len(trainData), k=5, indices=False)
-  results = []
+
+  print "===== Starting k fold validation ====="
+  aucAvg = 0.0
+  folds = 10
+  cv = cross_validation.KFold(len(trainData), n_folds=folds)
+  fold = 0
   for traincv, testcv in cv:
-    probas = cfr.fit(trainData[traincv], target[traincv]).predict_proba(train[testcv])
-    print probas
-  '''
+    X_train, X_cv, y_train, y_cv = X[traincv], X[testcv], target[traincv], target[testcv]
+    model.fit(X_train, y_train)
+    preds = model.predict_proba(X_cv)[:,1]
+    fold = fold + 1
+    auc = metrics.roc_auc_score(y_cv, preds)
+    print "Fold:",fold," Auc:",auc
+    aucAvg += auc
+  aucAvg = aucAvg/folds
+  print "AUC : %f" % aucAvg
   
   '''
   # For Submission
