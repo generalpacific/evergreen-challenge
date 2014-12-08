@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import lda
 from sklearn.feature_extraction.text import CountVectorizer
 
+debug = 0
 
 def convert(val):
   if val == '?':
@@ -35,7 +36,8 @@ def isImbalanced(y):
       class0+=1
     else:
       class1+=1
-  print 'Class 0:', class0, 'Class 1:', class1
+  if debug == 1:
+    print 'Class 0:', class0, 'Class 1:', class1
   if (max(class0,class1)/min(class0,class0) > 3):
     print 'Imbalanced Classes'
   else:
@@ -50,7 +52,7 @@ def tfidf(trainData):
 
 def documentFrequencyVector(trainData):
   tfv = CountVectorizer(min_df=3,  max_features=None, strip_accents='unicode',  
-        analyzer='word',token_pattern=r'\w{1,}',ngram_range=(1, 2))
+        analyzer='word',token_pattern=r'\w{1,}',ngram_range=(1, 2), stop_words='english')
   tfv.fit(trainData)
   X = tfv.transform(trainData)
   return X
@@ -58,12 +60,16 @@ def documentFrequencyVector(trainData):
 def getLdaTopicsVector(X):
   model = lda.LDA(n_topics=20, n_iter=1, random_state=1)
   model.fit(X)  # model.fit_transform(X) is also available
-  topic_word = model.topic_word_  # model.components_ also works
   doc_topic = model.doc_topic_
   topicVector = []
   for i in range(X.shape[0]):
     topicVector.append(doc_topic[i].argmax())
   return topicVector
+
+def transformInLDATopics(X):
+  model = lda.LDA(n_topics=1000, n_iter=10, random_state=1)
+  model.fit(X)  # model.fit_transform(X) is also available
+  return model.doc_topic_
 
 def selectModel(classifier):
   if classifier == 0:
@@ -125,7 +131,8 @@ def plotFeatureImportances(forest):
 def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
   # Feature Engineering and Formatting Data
   trainData = featureEng(trainFile)
-  print trainData.shape
+  if debug == 1:
+    print "trainData shape:", trainData.shape
   # For Submission
   #testData = featureEngTest(testFile)
 
@@ -138,24 +145,32 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
   isImbalanced(y)
 
   if boilerplateOnly == 0:
+    print "Feature selection type: TFIDF on boiler plate"
     X = tfidf(trainDataBoilerplate)
   elif boilerplateOnly == 1:
+    print "Feature selection type: Non boiler plate features"
     X = trainData
   elif boilerplateOnly == 2:
+    print "Feature selection type: Non boiler plate features + topics extracted using LDA"
     X = documentFrequencyVector(trainDataBoilerplate)
     topicsVector = getLdaTopicsVector(X)
     t = np.array(topicsVector)[np.newaxis].T
     trainData = np.append(trainData, t, 1)
     X = trainData
+  elif boilerplateOnly == 3:
+    print "Feature selection type: topics extracted using LDA"
+    X = documentFrequencyVector(trainDataBoilerplate)
+    X = transformInLDATopics(X)
   else:
-    print "boilerplateOnly value should either be 0, 1 or 2"
+    print "boilerplateOnly value should either be 0, 1, 2 or 3"
     sys.exit(0)
 
   model = selectModel(classifier)
 
   # Feature importances
 
-  print "===== Starting random split ====="
+  if debug == 1:
+    print "===== Starting random split ====="
   aucAvg = 0.0
   numcross = 10
   for i in xrange(numcross): 
@@ -163,14 +178,16 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
     model.fit(X_train, y_train)
     preds = model.predict_proba(X_cv)[:,1]
     auc = metrics.roc_auc_score(y_cv, preds)
-    print "NumCross:",i," Auc:",auc
+    if debug == 1:
+      print "NumCross:",i," Auc:",auc
     aucAvg += auc
   aucAvg = aucAvg/numcross
-  print "AUC : %f" % aucAvg
+  print numcross,"Random split AUC : %f" % aucAvg
  
   #plotFeatureImportances(model)
 
-  print "===== Starting k fold validation ====="
+  if debug == 1:
+    print "===== Starting k fold validation ====="
   aucAvg = 0.0
   folds = 10
   cv = cross_validation.KFold(len(trainData), n_folds=folds)
@@ -181,10 +198,11 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
     preds = model.predict_proba(X_cv)[:,1]
     fold = fold + 1
     auc = metrics.roc_auc_score(y_cv, preds)
-    print "Fold:",fold," Auc:",auc
+    if debug == 1:
+      print "Fold:",fold," Auc:",auc
     aucAvg += auc
   aucAvg = aucAvg/folds
-  print "AUC : %f" % aucAvg
+  print fold,"fold AUC : %f" % aucAvg
   
   '''
   # For Submission
@@ -196,9 +214,12 @@ def egon(rawData, trainFile, testFile, classifier, boilerplateOnly):
   '''
 
 def main():
+  global debug
   if len(sys.argv) < 6:
-    print 'Usage: python main.py <rawData> <trainFile> <testFile> <classifier - 0-lr, 1-nb, 2-rf> <feature selection 0-boilerplateOnly, 1-useOtherFeatures, 2-userOtherFeatures with LDA'
+    print 'Usage: python main.py <rawData> <trainFile> <testFile> <classifier - 0-lr, 1-nb, 2-rf> <feature selection 0-boilerplateOnly, 1-useOtherFeatures, 2-userOtherFeatures + LDA, 3-LDA>'
     sys.exit(2)
+  if len(sys.argv) == 7:
+    debug = int(sys.argv[6])
   egon(str(sys.argv[1]), str(sys.argv[2]), str(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5])) 
 
 main()
