@@ -13,7 +13,7 @@ https://www.kaggle.com/c/stumbleupon
     * `0`: Logistic Regression
     * `1`: Naive Bayes
     * `2`: Random Forest
-   * Type of Preprocessing
+   * Feature Selection
     * `0`: Use TFIDF on boiler plate text
     * `1`: Use non-boiler plate text attributes
     * `2`: Use non-boiler plate text attributes AND extract one top LDA topic per boiler plate attribute
