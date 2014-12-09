@@ -21,6 +21,6 @@ https://www.kaggle.com/c/stumbleupon
    * Debug (optional): to print debug statments 
   
 How to run?
-Usage: python main.py <rawData> <trainFile> <testFile> <classifier - 0-lr, 1-nb, 2-rf, 3-ab>
-<feature selection 0-useOtherFeatures, 1-only Boilerplate, 2-userOtherFeatures + LDA, 3-LDA>
+Usage: python main.py \<rawData\> \<trainFile\> \<testFile\> \<classifier - 0-lr, 1-nb, 2-rf, 3-ab\>
+\<feature selection 0-useOtherFeatures, 1-only Boilerplate, 2-userOtherFeatures + LDA, 3-LDA\>
 
