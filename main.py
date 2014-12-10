@@ -19,7 +19,8 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.ensemble import AdaBoostClassifier
 import lda
 from sklearn.feature_extraction.text import CountVectorizer
-
+from pylab import load
+from HTMLParser import HTMLParser
 
 debug = 0
 
@@ -113,7 +114,7 @@ def selectModel(classifier):
   elif classifier == 2:
     print 'Model: Random Forest'
     #model = RandomForestClassifier(n_estimators=10, max_features="auto", max_depth=2, bootstrap=True, n_jobs=4)
-    model = RandomForestClassifier(n_estimators=50, max_features="auto", max_depth=2, bootstrap=True, n_jobs=4, criterion="entropy")
+    model = RandomForestClassifier(n_estimators=100, max_features="auto", max_depth=32, bootstrap=True, n_jobs=4, criterion="entropy")
     #model = RandomForestClassifier(n_estimators=200, max_features=None, max_depth=None, bootstrap=True, n_jobs=-1, verbose=1)
     #model = RandomForestClassifier(n_estimators=10)
   elif classifier == 3:
@@ -180,7 +181,8 @@ def genSubmission(model, classifier, X, y, X_test, preds, featureSelection):
   if classifier == 2:
     #model.fit(X.toarray(), y)
     model.fit(X, y) # toarray is not required after applying SVD
-    preds = model.predict_proba(X_test.toarray())[:,1]
+    #preds = model.predict_proba(X_test.toarray())[:,1]
+    preds = model.predict_proba(X_test)[:,1]
   else:
     model.fit(X, y)
     if featureSelection == 1 or featureSelection == 3:
@@ -192,7 +194,7 @@ def genSubmission(model, classifier, X, y, X_test, preds, featureSelection):
   pred_df.to_csv(filename)
 
 
-def egon(rawData, trainFile, testFile, classifier, featureSelection):
+def egon(rawData, trainFile, testFile, classifier, featureSelection, svd_feature):
   # Feature Engineering and Formatting Data
   trainData = featureEng(trainFile)
   print 'Train Data shape without boilerplate: ', trainData.shape
@@ -204,23 +206,24 @@ def egon(rawData, trainFile, testFile, classifier, featureSelection):
   # TFIDF on boilerplate
   trainDataBoilerplate = list(np.array(p.read_table('train.tsv'))[:,2])
   testDataBoilerplate = list(np.array(p.read_table('test.tsv'))[:,2])
-  
+
+ 
   lentrain = len(trainDataBoilerplate)
   y = list(np.array(p.read_table('train.tsv'))[:,-1])
   target = np.array(p.read_table('train.tsv'))[:,-1]
   isImbalanced(y)
 
   model = selectModel(classifier)
-
   if featureSelection == 1:
     print "Feature selection type: TFIDF on boiler plate"
     X_all = tfidf(trainDataBoilerplate + testDataBoilerplate)
-    if classifier != 1: # Do not use SVD for NB
-      #SVD
-      print 'Applying SVD'
-      svd = TruncatedSVD(n_components=300, random_state=42)
-      svd.fit(X_all) 
-      X_all = svd.transform(X_all)
+    if (svd_feature == 1):
+      if classifier != 1: # Do not use SVD for NB
+        #SVD
+        print 'Applying SVD'
+        svd = TruncatedSVD(n_components=300, random_state=42)
+        svd.fit(X_all) 
+        X_all = svd.transform(X_all)
     print 'boilerplate train+test data shape: ', X_all.shape
     X = X_all[:lentrain]
     X_test = X_all[lentrain:]
@@ -237,6 +240,13 @@ def egon(rawData, trainFile, testFile, classifier, featureSelection):
     print "Feature selection type: topics extracted using LDA"
     #X = transformInLDATopics(trainDataBoilerplate)
     X_all = transformInLDATopics(trainDataBoilerplate + testDataBoilerplate)
+    if (svd_feature == 1):
+      if classifier != 1: # Do not use SVD for NB
+        #SVD
+        print 'Applying SVD'
+        svd = TruncatedSVD(n_components=300, random_state=42)
+        svd.fit(X_all) 
+        X_all = svd.transform(X_all)
     X = X_all[:lentrain]
     X_test = X_all[lentrain:]
   else:
@@ -291,13 +301,14 @@ def egon(rawData, trainFile, testFile, classifier, featureSelection):
 
 def main():
   global debug
-  if len(sys.argv) < 6:
+  if len(sys.argv) < 7:
     print 'Usage: python main.py <rawData> <trainFile> <testFile> <classifier - 0-lr, 1-nb, 2-rf, 3-ab>'
-    print '<feature selection 0-useOtherFeatures, 1-only Boilerplate, , 2-userOtherFeatures + LDA, 3-LDA>'
+    print '<feature selection 0-useOtherFeatures, 1-only Boilerplate, 2-userOtherFeatures + LDA, 3-LDA>'
+    print '<svd_feature>'
     sys.exit(2)
-  if len(sys.argv) == 7:
-    debug = int(sys.argv[6])
-  egon(str(sys.argv[1]), str(sys.argv[2]), str(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]))
+  if len(sys.argv) == 8:
+    debug = int(sys.argv[7])
+  egon(str(sys.argv[1]), str(sys.argv[2]), str(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]), int(sys.argv[6]))
 
 
 main()
