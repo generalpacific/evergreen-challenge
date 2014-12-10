@@ -13,9 +13,12 @@ https://www.kaggle.com/c/stumbleupon
     * `0`: Logistic Regression
     * `1`: Naive Bayes
     * `2`: Random Forest
-   * Type of Preprocessing
+   * Feature Selection
     * `0`: Use TFIDF on boiler plate text
     * `1`: Use non-boiler plate text attributes
     * `2`: Use non-boiler plate text attributes AND extract one top LDA topic per boiler plate attribute
     * `3`: Use LDA topic vectos for boiler  plate code
    * Debug (optional): to print debug statments 
+   * Usage: `python main.py \<rawData\> \<trainFile\> \<testFile\> \<classifier - 0-lr, 1-nb, 2-rf, 3-ab\>
+\<feature selection 0-useOtherFeatures, 1-only Boilerplate, 2-userOtherFeatures + LDA, 3-LDA\>`
+
