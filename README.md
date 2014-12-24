@@ -3,6 +3,8 @@ EvergreenChallenge
 
 https://www.kaggle.com/c/stumbleupon
 
+Classification of websites as Evergreen or Ephemeral
+
 ### Running the code
 
 `main.py` is the main python code that runs the evaluation. Use following arguments to run the code:
